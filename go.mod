@@ -1,4 +1,4 @@
-module callNTP
+module ntp
 
 go 1.24
 
