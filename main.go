@@ -68,6 +68,30 @@ func callNTP(hostname string, port int, quiet bool) *time.Time {
 }
 
 func main() {
+	timeFormats := map[string]string{
+		"Layout":      time.Layout,
+		"ANSIC":       time.ANSIC,
+		"UnixDate":    time.UnixDate,
+		"RubyDate":    time.RubyDate,
+		"RFC822":      time.RFC822,
+		"RFC822Z":     time.RFC822Z,
+		"RFC850":      time.RFC850,
+		"RFC1123":     time.RFC1123,
+		"RFC1123Z":    time.RFC1123Z,
+		"RFC3339":     time.RFC3339,
+		"RFC3339Nano": time.RFC3339Nano,
+		"Kitchen":     time.Kitchen,
+		"Stamp":       time.Stamp,
+		"StampMilli":  time.StampMilli,
+		"StampMicro":  time.StampMicro,
+		"StampNano":   time.StampNano,
+		"DateTime":    time.DateTime,
+		"DateOnly":    time.DateOnly,
+		"TimeOnly":    time.TimeOnly,
+		"Seconds1900": "Seconds1900",
+		"Seconds1970": "Seconds1970",
+	}
+
 	var address string
 	addressPresent := false
 
@@ -78,6 +102,8 @@ func main() {
 	portPresent := false
 
 	var quiet bool
+
+	var layout string
 
 	command := &cli.Command{
 		Name:  "ntp",
@@ -123,6 +149,21 @@ func main() {
 				Destination: &quiet,
 				Value:       false,
 			},
+			&cli.StringFlag{
+				Name:    "format",
+				Aliases: []string{"f"},
+				Usage:   "The format to use for the output time",
+				Value:   time.UnixDate,
+				Action: func(_ context.Context, _ *cli.Command, format string) error {
+					if dateLayout := timeFormats[format]; dateLayout == "" {
+						return fmt.Errorf("invalid format: %s", format)
+					} else {
+						layout = dateLayout
+					}
+
+					return nil
+				},
+			},
 		},
 
 		Action: func(context context.Context, command *cli.Command) error {
@@ -140,10 +181,21 @@ func main() {
 			}
 
 			if currentTime != nil {
+				var timeString string
+
+				switch layout {
+				case "Seconds1970":
+					timeString = fmt.Sprintf("%d", currentTime.Unix())
+				case "Seconds1900":
+					timeString = fmt.Sprintf("%d", currentTime.Unix()+2208988800)
+				default:
+					timeString = currentTime.Format(layout)
+				}
+
 				if !quiet {
-					fmt.Printf("Current time: %s\n", currentTime.Format(time.UnixDate))
+					fmt.Printf("Current time: %s\n", timeString)
 				} else {
-					fmt.Printf("%s\n", currentTime.Format(time.UnixDate))
+					fmt.Printf("%s\n", timeString)
 				}
 			} else {
 				return errors.New("failed to get the current time")
