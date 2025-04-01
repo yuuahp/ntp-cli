@@ -11,7 +11,9 @@ A tiny CLI tool to call NTP servers.
 ## Install
 
 - Build it yourself: run `go build -o ntp-cli`
-- Download from [GitHub Releases](https://github.com/yuuahp/ntp-cli/releases/latest)
+- Download from [GitHub Releases](https://github.com/yuuahp/ntp-cli/releases/latest)  
+  If you are on macOS or Linux, don't forget to give execute permission: `chmod +x ntp-cli`  
+  Also, for macOS, run `xattr -c ntp-cli` to remove the quarantine attribute.
 
 ## Usage
 
@@ -58,7 +60,7 @@ invalid arguments: you can either specify an address or a hostname, but not both
   <summary>Available formats:</summary>
 
   | Format      | Example                             |
-  |-------------|-------------------------------------|
+      |-------------|-------------------------------------|
   | Layout      | 01/02 03:04:05PM '06 -0700          |
   | ANSIC       | Mon Jan _2 15:04:05 2006            |
   | UnixDate    | Mon Jan _2 15:04:05 MST 2006        |
