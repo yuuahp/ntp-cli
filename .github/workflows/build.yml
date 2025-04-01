@@ -43,10 +43,10 @@ jobs:
           go-version-file: ./go.mod
       - name: build
         run: |
-          go build -o ntp-cli
+          go build -o ntp-cli-${{ matrix.os }}-v${{ needs.bump-version.outputs.version }}
       - name: upload the artifact
         uses: actions/upload-artifact@v4
         with:
           name: ntp-cli ${{ env.version }} for ${{ matrix.os }}
-          path: ./ntp-cli
+          path: ./ntp-cli-${{ matrix.os }}-v${{ needs.bump-version.outputs.version }}
           overwrite: true
