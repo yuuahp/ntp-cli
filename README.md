@@ -8,9 +8,9 @@ A tiny CLI tool to call NTP servers.
 - 📝 Supports multiple time formats.
 - 🤫 Quiet mode to suppress output.
 
-## Build
+## Install
 
-Run `go build -o ntp-cli`
+Run `go build -o ntp-cli` or download from [GitHub Releases](https://github.com/yuuahp/ntp-cli/releases/latest)
 
 ## Usage
 
