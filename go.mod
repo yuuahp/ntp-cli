@@ -1,4 +1,4 @@
-module ntp
+module ntp-cli
 
 go 1.24
 

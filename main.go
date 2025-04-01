@@ -103,7 +103,7 @@ func main() {
 
 	var quiet bool
 
-	var layout string
+	layout := time.UnixDate
 
 	command := &cli.Command{
 		Name:  "ntp",
@@ -112,7 +112,7 @@ func main() {
 			&cli.StringFlag{
 				Name:        "address",
 				Aliases:     []string{"a"},
-				Usage:       "The address of the NTP server to call",
+				Usage:       "The address of the NTP server",
 				Destination: &address,
 				Value:       "pool.ntp.org:123",
 				Action: func(_ context.Context, _ *cli.Command, _ string) error {
@@ -123,7 +123,7 @@ func main() {
 			&cli.StringFlag{
 				Name:        "hostname",
 				Aliases:     []string{"h"},
-				Usage:       "The hostname of the NTP server to call",
+				Usage:       "The hostname of the NTP server",
 				Destination: &hostname,
 				Value:       "pool.ntp.org",
 				Action: func(_ context.Context, _ *cli.Command, _ string) error {
@@ -134,7 +134,7 @@ func main() {
 			&cli.IntFlag{
 				Name:        "port",
 				Aliases:     []string{"p"},
-				Usage:       "The port of the NTP server to call",
+				Usage:       "The port of the NTP server",
 				Destination: &port,
 				Value:       123,
 				Action: func(_ context.Context, _ *cli.Command, _ int64) error {
@@ -153,7 +153,7 @@ func main() {
 				Name:    "format",
 				Aliases: []string{"f"},
 				Usage:   "The format to use for the output time",
-				Value:   time.UnixDate,
+				Value:   "UnixDate",
 				Action: func(_ context.Context, _ *cli.Command, format string) error {
 					if dateLayout := timeFormats[format]; dateLayout == "" {
 						return fmt.Errorf("invalid format: %s", format)
