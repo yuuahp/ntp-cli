@@ -43,7 +43,7 @@ jobs:
           go-version-file: ./go.mod
       - name: build
         run: |
-          echo "BINARY_NAME=$(cut -d "-" -f 1 <<< "${{ matrix.os }")" >> $GITHUB_ENV
+          echo "BINARY_NAME=$(cut -d "-" -f 1 <<< "${{ matrix.os }}")" >> $GITHUB_ENV
           go build -o ntp-cli-${BINARY_NAME}-v${{ env.VERSION }}
       - name: upload the artifact
         uses: actions/upload-artifact@v4
