@@ -57,7 +57,7 @@ jobs:
       - name: upload the artifact
         uses: actions/upload-artifact@v4
         with:
-          name: ntp-cli ${{ env.VERSION }} for ${{ matrix.os }}
+          name: ntp-cli v${{ env.VERSION }} for ${{ matrix.os }}
           path: ./ntp-cli-${{ env.PLATFORM }}-v${{ env.VERSION }}
           overwrite: true
 
