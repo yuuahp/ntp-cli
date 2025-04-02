@@ -35,8 +35,7 @@ jobs:
     needs: bump-version
 
     env:
-      version: ${{ needs.bump-version.outputs.version }}
-      os: ${{ matrix.os }}
+      VERSION: ${{ needs.bump-version.outputs.version }}
 
     steps:
       - uses: actions/checkout@v4
@@ -45,12 +44,13 @@ jobs:
           go-version-file: ./go.mod
       - name: build
         run: |
-          go build -o ntp-cli-${{ matrix.os }}-v${{ needs.bump-version.outputs.version }}
+          echo "BINARY_NAME=$(cut -d "-" -f 1 <<< "${{ matrix.os }")" >> $GITHUB_ENV
+          go build -o ntp-cli-${BINARY_NAME}-v${{ env.VERSION }}
       - name: upload the artifact
         uses: actions/upload-artifact@v4
         with:
-          name: ntp-cli ${{ env.version }} for ${{ matrix.os }}
-          path: ./ntp-cli-${{ matrix.os }}-v${{ needs.bump-version.outputs.version }}
+          name: ntp-cli ${{ env.VERSION }} for ${{ matrix.os }}
+          path: ./ntp-cli-${{ env.BINARY_NAME }}-v${{ env.VERSION }}
           overwrite: true
 
   release:
