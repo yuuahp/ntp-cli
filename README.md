@@ -26,23 +26,42 @@ A tiny CLI tool to call NTP servers.
 Please note that `--address` conflicts with `--hostname` and `--port`.
 
 ```bash
+# Call default NTP server
 $ ./ntp-cli
 Calling NTP server at pool.ntp.org:123...
 Current time: Tue Apr  1 23:50:00 JST 2025
 
+# Call NTP server with hostname and default port
 $ ./ntp-cli -h time.apple.com
 Calling NTP server at time.apple.com:123...
 Current time: Tue Apr  1 23:50:59 JST 2025
 
+# Silence the output
 $ ./ntp-cli -a time.apple.com:123 -q
 $ ./ntp-cli -h time.apple.com -p 123 -q
 Tue Apr  1 23:53:09 JST 2025
 
+# Change the time format
 $ ./ntp-cli -f RFC3339 -q
 2025-04-01T23:57:00+09:00
 
+# This causes an error because you can't specify both address and hostname
 $ ./ntp-cli -h time.apple.com -a pool.ntp.org:123
 invalid arguments: you can either specify an address or a hostname, but not both
+
+# Call NTP servers in parallel
+$ ./ntp-cli -h time.apple.com -p 123 --parallel time.apple.com:234,pool.ntp.org:123
+Calling NTP server at pool.ntp.org:123...
+Calling NTP server at time.apple.com:234... # This fails
+Calling NTP server at time.apple.com:123...
+Current time: Fri Apr  4 00:45:38 JST 2025
+
+# Call NTP server with fallback
+$ ./ntp-cli -h time.apple.com -p 234 --fallback time.apple.com:123,time.apple.com:245
+Calling NTP server at time.apple.com:234...
+Reading the response failed:  read udp 192.168.2.107:62348->17.253.68.253:234: i/o timeout
+Calling NTP server at time.apple.com:123...
+Current time: Fri Apr  4 00:33:26 JST 2025
 ```
 
 ## Flags
@@ -60,7 +79,7 @@ invalid arguments: you can either specify an address or a hostname, but not both
   <summary>Available formats:</summary>
 
   | Format      | Example                             |
-      |-------------|-------------------------------------|
+            |-------------|-------------------------------------|
   | Layout      | 01/02 03:04:05PM '06 -0700          |
   | ANSIC       | Mon Jan _2 15:04:05 2006            |
   | UnixDate    | Mon Jan _2 15:04:05 MST 2006        |
@@ -84,3 +103,10 @@ invalid arguments: you can either specify an address or a hostname, but not both
   | Seconds1970 | 1743518576                          |
 
   </details>
+
+- `-q`, `--quiet`:
+  Suppress output. Only the time and errors will be printed.
+- `--fallback <string>`:
+  Fallback server addresses to call if the primary server fails. Separated by commas.
+- `--parallel <string>`:
+  Server addresses to call in parallel. Separated by commas.
