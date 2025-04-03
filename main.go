@@ -157,8 +157,10 @@ func main() {
 				group.Wait() // wait for the primary server to respond
 
 				for _, address := range fallbacks {
-					if len(channel) != 0 { // if the last server has already responded
+					select {
+					case <-channel: // if the last server has already responded
 						break
+					default:
 					}
 
 					if result := CallNTP(address, quiet); result != nil {
