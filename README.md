@@ -79,7 +79,7 @@ Current time: Fri Apr  4 00:33:26 JST 2025
   <summary>Available formats:</summary>
 
   | Format      | Example                             |
-            |-------------|-------------------------------------|
+  |-------------|-------------------------------------|
   | Layout      | 01/02 03:04:05PM '06 -0700          |
   | ANSIC       | Mon Jan _2 15:04:05 2006            |
   | UnixDate    | Mon Jan _2 15:04:05 MST 2006        |
