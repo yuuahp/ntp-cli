@@ -2,70 +2,15 @@ package main
 
 import (
 	"context"
-	"encoding/binary"
 	"errors"
 	"fmt"
 	"github.com/urfave/cli/v3"
 	"log"
-	"net"
 	"os"
+	"strings"
+	"sync"
 	"time"
 )
-
-// Calls an NTP server according to [RFC 5905](https://datatracker.ietf.org/doc/html/rfc5905), and returns the current time.
-func callNTPAddress(address string, quiet bool) *time.Time {
-	if !quiet {
-		fmt.Printf("Calling NTP server at %s...\n", address)
-	}
-
-	packet := make([]byte, 48)
-
-	// leap 0, version 4, mode 3 (client)
-	// 0 4 3 -> 00 100 011 -> 0x23
-	packet[0] = 0x23
-
-	connection, err := net.Dial("udp", address)
-
-	if err != nil {
-		fmt.Println("An error occurred: ", err)
-		return nil
-	}
-
-	defer connection.Close()
-
-	// Set a deadline for the connection
-	if deadlineExceededError := connection.SetDeadline(time.Now().Add(3 * time.Second)); deadlineExceededError != nil {
-		fmt.Println("Deadline exceeded: ", deadlineExceededError)
-		return nil
-	}
-
-	// Send the packet to the server
-	if _, writeError := connection.Write(packet); writeError != nil {
-		fmt.Println("Writing the packet failed: ", writeError)
-		return nil
-	}
-
-	responsePacket := make([]byte, 48)
-
-	// Read the response from the server
-	if _, readError := connection.Read(responsePacket); readError != nil {
-		fmt.Println("Reading the response failed: ", readError)
-		return nil
-	}
-
-	ntpSeconds := binary.BigEndian.Uint32(responsePacket[40:44])
-
-	// RFC 868: https://datatracker.ietf.org/doc/rfc868/
-	unixSeconds := int64(ntpSeconds) - 2208988800
-
-	unixTime := time.Unix(unixSeconds, 0)
-
-	return &unixTime
-}
-
-func callNTP(hostname string, port int, quiet bool) *time.Time {
-	return callNTPAddress(fmt.Sprintf("%s:%d", hostname, port), quiet)
-}
 
 func main() {
 	timeFormats := map[string]string{
@@ -104,6 +49,9 @@ func main() {
 	var quiet bool
 
 	layout := time.UnixDate
+
+	var parallels []string
+	var fallbacks []string
 
 	command := &cli.Command{
 		Name:  "ntp",
@@ -164,39 +112,78 @@ func main() {
 					return nil
 				},
 			},
+			&cli.StringFlag{
+				Name:  "parallel",
+				Usage: "Servers to call in parallel, alongside the main server. Separated by commas.",
+				Action: func(_ context.Context, _ *cli.Command, serversString string) error {
+					parallels = strings.Split(serversString, ",")
+
+					return nil
+				},
+			},
+			&cli.StringFlag{
+				Name:  "fallback",
+				Usage: "Fallback servers to call if the main server fails. Separated by commas.",
+				Action: func(_ context.Context, _ *cli.Command, serversString string) error {
+					fallbacks = strings.Split(serversString, ",")
+
+					return nil
+				},
+			},
 		},
 
 		Action: func(context context.Context, command *cli.Command) error {
-			var currentTime *time.Time
+			var group sync.WaitGroup
+			group.Add(1)
+
+			channel := make(chan *time.Time, 1)
 
 			switch {
-			case !addressPresent && hostnamePresent: // hostname is present, address is not (use default port)
-				currentTime = callNTP(hostname, int(port), quiet)
+			case !addressPresent && (hostnamePresent || (!hostnamePresent && !portPresent)):
+				go CallNTPAsync(fmt.Sprintf("%s:%d", hostname, port), quiet, channel, &group)
 			case addressPresent && !hostnamePresent && !portPresent: // address is present, hostname and port are not
-				currentTime = callNTPAddress(address, quiet)
-			case !addressPresent && !hostnamePresent && !portPresent: // neither address nor hostname nor port are present (use defaults)
-				currentTime = callNTP(hostname, int(port), quiet)
+				go CallNTPAsync(address, quiet, channel, &group)
 			default:
 				return errors.New("invalid arguments: you can either specify an address or a hostname, but not both")
 			}
 
-			if currentTime != nil {
-				var timeString string
-
-				switch layout {
-				case "Seconds1970":
-					timeString = fmt.Sprintf("%d", currentTime.Unix())
-				case "Seconds1900":
-					timeString = fmt.Sprintf("%d", currentTime.Unix()+2208988800)
-				default:
-					timeString = currentTime.Format(layout)
+			if parallelsLen, fallbacksLen := len(parallels), len(fallbacks); parallelsLen > 0 && fallbacksLen > 0 {
+				return errors.New("you can either specify parallel servers or fallback servers, but not both")
+			} else if parallelsLen > 0 {
+				for _, address := range parallels {
+					go CallNTPAsync(address, quiet, channel, &group)
 				}
+			} else if fallbacksLen > 0 {
+				group.Wait() // wait for the primary server to respond
+
+				for _, address := range fallbacks {
+					select {
+					case <-channel: // if the last server has already responded
+						break
+					default:
+					}
+
+					if result := CallNTP(address, quiet); result != nil {
+						channel <- result
+					}
+				}
+			}
+
+			group.Wait()
+
+			close(channel)
+
+			currentTime := <-channel
+
+			if currentTime != nil {
+				timeString := FormatTime(currentTime, layout)
 
 				if !quiet {
-					fmt.Printf("Current time: %s\n", timeString)
-				} else {
-					fmt.Printf("%s\n", timeString)
+					fmt.Printf("Current time: ")
 				}
+
+				fmt.Printf("%s\n", timeString)
+
 			} else {
 				return errors.New("failed to get the current time")
 			}
